@@ -10,9 +10,9 @@ import (
 func TestUnmarshallExerciseList(t *testing.T) {
 	testCases := []struct {
 		RawToml        string
-		ExpectedErr    error
 		ExpectedParsed []ExerciseDefinition
 		MustErr        bool
+		ErrorMatcher   func(int, *testing.T, error) bool
 	}{
 		{
 			RawToml: `
@@ -44,21 +44,30 @@ func TestUnmarshallExerciseList(t *testing.T) {
 					To finish this exercise, you need to …
 					These links might help you …"""
 					`,
-			MustErr:     true,
-			ExpectedErr: ErrInvalidExerciseDefinition,
+			MustErr: true,
+			ErrorMatcher: func(i int, t *testing.T, err error) bool {
+				got, returnValue := errors.AsType[ExerciseDefinitionValidationError](err)
+				if !returnValue {
+					t.Logf("tc[%d] Got: %T Expected: %T", i, got, ExerciseDefinitionValidationError{})
+				}
+				return returnValue
+			},
 		},
 	}
-	for _, tc := range testCases {
+	for i, tc := range testCases {
 		parsed, returnedErr := NewExerciseListFromReader(strings.NewReader(tc.RawToml))
 		if tc.MustErr {
-			if errors.Is(returnedErr, tc.ExpectedErr) {
-				t.Logf("Got: %q Expected: %q", returnedErr.Error(), tc.ExpectedErr.Error())
-				t.Fail()
+			if returnedErr == nil {
+				t.Logf("tc[%d] Expected error but got nil", i)
+				t.FailNow()
+			}
+			if !tc.ErrorMatcher(i, t, returnedErr) {
+				t.FailNow()
 			}
 		} else {
 			if !reflect.DeepEqual(parsed.Exercises, tc.ExpectedParsed) {
-				t.Logf("Expected: %+v  Got:  %+v", tc.ExpectedParsed, parsed.Exercises)
-				t.Fail()
+				t.Logf("tc[%d] Expected: %+v  Got:  %+v", i, tc.ExpectedParsed, parsed.Exercises)
+				t.FailNow()
 			}
 		}
 	}

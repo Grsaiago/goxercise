@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	ErrFailedToValidateExercise  = errors.New("failed to validate exercise definition")
 	ErrInvalidExerciseDefinition = errors.New("Invalid exercise definition")
 )
 
@@ -25,12 +24,12 @@ type ExerciseDefinitionValidationError struct {
 	fieldErrors []string
 }
 
-func NewExerciseDefinitionValidationError(validationErrors validator.ValidationErrors) *ExerciseDefinitionValidationError {
+func NewExerciseDefinitionValidationError(validationErrors validator.ValidationErrors) ExerciseDefinitionValidationError {
 	var fieldErrors []string
 	for _, err := range validationErrors {
-		fieldErrors = append(fieldErrors, fmt.Sprintf("[%s]: [%s]", err.Field(), err.Error()))
+		fieldErrors = append(fieldErrors, fmt.Sprintf("%s: %s", err.StructNamespace(), err.Tag()))
 	}
-	return &ExerciseDefinitionValidationError{
+	return ExerciseDefinitionValidationError{
 		fieldErrors,
 	}
 }
@@ -42,9 +41,9 @@ func (err ExerciseDefinitionValidationError) Error() string {
 // Returns a type erased [ExerciseDefinitionValidationError]
 func (ed ExerciseDefinition) Validate() error {
 	err := platform.Validator.Struct(&ed)
-	castedErr, isCastedErr := errors.AsType[*validator.ValidationErrors](err)
+	castedErr, isCastedErr := errors.AsType[validator.ValidationErrors](err)
 	if !isCastedErr {
 		panic("ExerciseDefinition failed to validate with unknown error")
 	}
-	return NewExerciseDefinitionValidationError(*castedErr)
+	return NewExerciseDefinitionValidationError(castedErr)
 }

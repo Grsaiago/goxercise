@@ -3,8 +3,8 @@ module github.com/Grsaiago/goxercise
 go 1.26.2
 
 require (
+	github.com/BurntSushi/toml v1.6.0
 	github.com/go-playground/validator/v10 v10.30.2
-	github.com/pelletier/go-toml/v2 v2.3.0
 )
 
 require (
